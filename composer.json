@@ -1,0 +1,44 @@
+{
+  "name": "arraypress/wp-database-utils",
+  "version": "1.0.0",
+  "description": "A lean WordPress library for essential database operations and query building",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/arraypress/wp-database-utils/",
+  "authors": [
+    {
+      "name": "David Sherlock",
+      "homepage": "https://arraypress.com/"
+    }
+  ],
+  "require": {
+    "php": ">=7.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "ArrayPress\\DatabaseUtils\\": "src/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "preferred-install": "dist"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "support": {
+    "issues": "https://github.com/arraypress/wp-database-utils/issues",
+    "source": "https://github.com/arraypress/wp-database-utils"
+  },
+  "keywords": [
+    "wordpress",
+    "database",
+    "query",
+    "sql",
+    "wp",
+    "arraypress",
+    "wpdb",
+    "database-utils",
+    "query-builder"
+  ]
+}
