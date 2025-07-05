@@ -234,7 +234,7 @@ class Database {
 				return (float) $result;
 			case 'string':
 			default:
-				return (string) $result;
+				return $result;
 		}
 	}
 
