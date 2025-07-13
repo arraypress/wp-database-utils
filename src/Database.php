@@ -117,10 +117,6 @@ class Database {
 		return $wpdb->get_var( $sql ) === '1';
 	}
 
-	// ========================================
-	// Table Information
-	// ========================================
-
 	/**
 	 * Get meta table name for object type.
 	 *
@@ -181,61 +177,6 @@ class Database {
 		global $wpdb;
 
 		return $wpdb->get_charset_collate();
-	}
-
-	// ========================================
-	// Query Results
-	// ========================================
-
-	/**
-	 * Get last insert ID.
-	 *
-	 * @return int Last insert ID.
-	 */
-	public static function get_insert_id(): int {
-		global $wpdb;
-
-		return $wpdb->insert_id;
-	}
-
-	/**
-	 * Get number of affected rows from last query.
-	 *
-	 * @return int Number of affected rows.
-	 */
-	public static function get_affected_rows(): int {
-		global $wpdb;
-
-		return $wpdb->rows_affected;
-	}
-
-	/**
-	 * Execute query and return single value with type casting.
-	 *
-	 * @param string $query     SQL query.
-	 * @param string $cast_type Type to cast to ('int', 'float', 'string').
-	 * @param mixed  $default   Default value if result is null.
-	 *
-	 * @return mixed Casted result or default.
-	 */
-	public static function get_var_cast( string $query, string $cast_type = 'string', $default = null ) {
-		global $wpdb;
-
-		$result = $wpdb->get_var( $query );
-
-		if ( is_null( $result ) ) {
-			return $default;
-		}
-
-		switch ( $cast_type ) {
-			case 'int':
-				return (int) $result;
-			case 'float':
-				return (float) $result;
-			case 'string':
-			default:
-				return $result;
-		}
 	}
 
 }

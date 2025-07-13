@@ -1,9 +1,9 @@
 <?php
 /**
- * Query Utility Class
+ * Query Builder Utility Class
  *
- * Provides utility functions for building safe SQL queries in WordPress,
- * including LIKE patterns, placeholders, and common query components.
+ * Provides utility functions for building safe SQL query components in WordPress,
+ * including LIKE patterns, placeholders, and common query clauses.
  *
  * @package ArrayPress\DatabaseUtils
  * @since   1.0.0
@@ -16,11 +16,11 @@ declare( strict_types=1 );
 namespace ArrayPress\DatabaseUtils;
 
 /**
- * Query Class
+ * Builder Class
  *
- * Core query building utilities for WordPress.
+ * Core query component building utilities for WordPress.
  */
-class Query {
+class Builder {
 
 	/**
 	 * Generate SQL LIKE pattern.
@@ -146,10 +146,6 @@ class Query {
 		return $wpdb->prepare( "{$column} {$operator} {$placeholder}", $value );
 	}
 
-	// ========================================
-	// Query Component Builders
-	// ========================================
-
 	/**
 	 * Generate WHERE clause from conditions.
 	 *
@@ -229,168 +225,6 @@ class Query {
 		return 'GROUP BY ' . implode( ', ', $quoted );
 	}
 
-	// ========================================
-	// Utility Methods
-	// ========================================
-
-	/**
-	 * Sanitize ORDER BY direction.
-	 *
-	 * @param string $direction Direction string.
-	 *
-	 * @return string 'ASC' or 'DESC'.
-	 */
-	public static function sanitize_order( string $direction ): string {
-		return strtoupper( $direction ) === 'DESC' ? 'DESC' : 'ASC';
-	}
-
-	/**
-	 * Sanitize comparison operator.
-	 *
-	 * @param string $operator Operator string.
-	 *
-	 * @return string Valid operator or '='.
-	 */
-	public static function sanitize_operator( string $operator ): string {
-		$valid = [ '=', '!=', '<>', '>', '>=', '<', '<=', 'LIKE', 'NOT LIKE' ];
-
-		return in_array( strtoupper( $operator ), $valid ) ? strtoupper( $operator ) : '=';
-	}
-
-	/**
-	 * Generate NOT EMPTY condition.
-	 *
-	 * @param string $column Column name.
-	 *
-	 * @return string NOT EMPTY condition.
-	 */
-	public static function not_empty( string $column ): string {
-		return "({$column} != '' AND {$column} IS NOT NULL)";
-	}
-
-	/**
-	 * Build conditions from dynamic filters array.
-	 *
-	 * @param array $filters Array of filter key => value pairs.
-	 * @param array $mapping Optional custom mapping of filter keys to columns.
-	 *
-	 * @return array Array of SQL conditions.
-	 */
-	public static function build_conditions( array $filters, array $mapping = [] ): array {
-		$conditions = [];
-
-		// Default mappings for common WordPress patterns
-		$default_mapping = [
-			'status'     => 'post_status',
-			'type'       => 'post_type',
-			'author'     => 'post_author',
-			'parent'     => 'post_parent',
-			'search'     => 'post_title',
-			'date_from'  => 'post_date',
-			'date_to'    => 'post_date',
-			'meta_key'   => 'meta_key',
-			'meta_value' => 'meta_value',
-		];
-
-		$mapping = array_merge( $default_mapping, $mapping );
-
-		foreach ( $filters as $key => $value ) {
-			if ( empty( $value ) && $value !== '0' ) {
-				continue;
-			}
-
-			$column = $mapping[ $key ] ?? $key;
-
-			switch ( $key ) {
-				case 'search':
-					$conditions[] = self::like_clause( $column, $value, 'substring' );
-					break;
-
-				case 'date_from':
-					$conditions[] = self::condition( $column, $value, '>=', 'string' );
-					break;
-
-				case 'date_to':
-					$conditions[] = self::condition( $column, $value, '<=', 'string' );
-					break;
-
-				case 'type':
-				case 'status':
-				case 'author':
-				case 'parent':
-					if ( is_array( $value ) ) {
-						$conditions[] = self::in_clause( $column, $value );
-					} else {
-						$conditions[] = self::condition( $column, $value );
-					}
-					break;
-
-				default:
-					// Handle custom filters
-					if ( is_array( $value ) ) {
-						$conditions[] = self::in_clause( $column, $value );
-					} else {
-						$conditions[] = self::condition( $column, $value );
-					}
-					break;
-			}
-		}
-
-		return $conditions;
-	}
-
-	/**
-	 * Build SELECT query from filters array.
-	 *
-	 * @param string $table    Table name (without prefix).
-	 * @param array  $filters  Filter key => value pairs.
-	 * @param array  $order_by ORDER BY columns.
-	 * @param int    $limit    LIMIT count.
-	 * @param array  $mapping  Optional custom column mapping.
-	 *
-	 * @return string Complete SELECT query.
-	 */
-	public static function build_filtered_select( string $table, array $filters = [], array $order_by = [], int $limit = 0, array $mapping = [] ): string {
-		$conditions = self::build_conditions( $filters, $mapping );
-
-		return self::build_select( $table, $conditions, $order_by, $limit );
-	}
-
-	/**
-	 * Build simple SELECT query.
-	 *
-	 * @param string $table      Table name (without prefix).
-	 * @param array  $conditions WHERE conditions.
-	 * @param array  $order_by   ORDER BY columns.
-	 * @param int    $limit      LIMIT count.
-	 *
-	 * @return string Complete SELECT query.
-	 */
-	public static function build_select( string $table, array $conditions = [], array $order_by = [], int $limit = 0 ): string {
-		global $wpdb;
-
-		$table = sanitize_key( $table );
-		$query = "SELECT * FROM {$wpdb->prefix}{$table}";
-
-		if ( ! empty( $conditions ) ) {
-			$query .= ' ' . self::where_clause( $conditions );
-		}
-
-		if ( ! empty( $order_by ) ) {
-			$query .= ' ' . self::order_by_clause( $order_by );
-		}
-
-		if ( $limit > 0 ) {
-			$query .= ' ' . self::limit_clause( $limit );
-		}
-
-		return $query;
-	}
-
-	// ========================================
-// Placeholder & Parameter Helpers
-// ========================================
-
 	/**
 	 * Generate placeholders and add values to params array.
 	 *
@@ -433,10 +267,6 @@ class Query {
 
 		return "{$column} {$operator} ({$placeholders})";
 	}
-
-// ========================================
-// Date Range Helpers
-// ========================================
 
 	/**
 	 * Build date range conditions with parameters.
