@@ -76,7 +76,7 @@ class Query {
 		}
 
 		$placeholders = self::placeholders( $values );
-		$operator = $not ? 'NOT IN' : 'IN';
+		$operator     = $not ? 'NOT IN' : 'IN';
 
 		return $wpdb->prepare( "{$column} {$operator} ({$placeholders})", $values );
 	}
@@ -169,6 +169,7 @@ class Query {
 		}
 
 		$filtered = array_filter( $conditions );
+
 		return empty( $filtered ) ? '' : 'WHERE ' . implode( " {$operator} ", $filtered );
 	}
 
@@ -221,7 +222,7 @@ class Query {
 			return '';
 		}
 
-		$quoted = array_map( function( $column ) {
+		$quoted = array_map( function ( $column ) {
 			return "`{$column}`";
 		}, $columns );
 
@@ -252,6 +253,7 @@ class Query {
 	 */
 	public static function sanitize_operator( string $operator ): string {
 		$valid = [ '=', '!=', '<>', '>', '>=', '<', '<=', 'LIKE', 'NOT LIKE' ];
+
 		return in_array( strtoupper( $operator ), $valid ) ? strtoupper( $operator ) : '=';
 	}
 
@@ -350,6 +352,7 @@ class Query {
 	 */
 	public static function build_filtered_select( string $table, array $filters = [], array $order_by = [], int $limit = 0, array $mapping = [] ): string {
 		$conditions = self::build_conditions( $filters, $mapping );
+
 		return self::build_select( $table, $conditions, $order_by, $limit );
 	}
 
@@ -382,6 +385,100 @@ class Query {
 		}
 
 		return $query;
+	}
+
+	// ========================================
+// Placeholder & Parameter Helpers
+// ========================================
+
+	/**
+	 * Generate placeholders and add values to params array.
+	 *
+	 * @param array   $values Array of values.
+	 * @param array  &$params Reference to params array to append to.
+	 * @param string  $type   Placeholder type ('%s', '%d', '%f').
+	 *
+	 * @return string Comma-separated placeholders.
+	 */
+	public static function placeholders_with_params( array $values, array &$params, string $type = '%s' ): string {
+		if ( empty( $values ) ) {
+			return '';
+		}
+
+		// Add values to params array
+		$params = array_merge( $params, $values );
+
+		// Return placeholders
+		return self::placeholders( $values, $type );
+	}
+
+	/**
+	 * Generate safe IN clause with parameters.
+	 *
+	 * @param string  $column Column name.
+	 * @param array   $values Array of values.
+	 * @param array  &$params Reference to params array.
+	 * @param bool    $not    Whether to generate NOT IN.
+	 * @param string  $type   Value type ('%s', '%d', '%f').
+	 *
+	 * @return string SQL IN clause with placeholders.
+	 */
+	public static function safe_in_clause( string $column, array $values, array &$params, bool $not = false, string $type = '%s' ): string {
+		if ( empty( $values ) ) {
+			return $not ? '1=1' : '1=0';
+		}
+
+		$placeholders = self::placeholders_with_params( $values, $params, $type );
+		$operator     = $not ? 'NOT IN' : 'IN';
+
+		return "{$column} {$operator} ({$placeholders})";
+	}
+
+// ========================================
+// Date Range Helpers
+// ========================================
+
+	/**
+	 * Build date range conditions with parameters.
+	 *
+	 * @param string       $column     Column name.
+	 * @param string|null  $start_date Start date.
+	 * @param string|null  $end_date   End date.
+	 * @param array       &$params     Reference to params array.
+	 *
+	 * @return array Array of date conditions.
+	 */
+	public static function date_range_conditions( string $column, ?string $start_date, ?string $end_date, array &$params ): array {
+		$conditions = [];
+
+		if ( ! empty( $start_date ) ) {
+			$conditions[] = "{$column} >= %s";
+			$params[]     = $start_date;
+		}
+
+		if ( ! empty( $end_date ) ) {
+			$conditions[] = "{$column} <= %s";
+			$params[]     = $end_date;
+		}
+
+		return $conditions;
+	}
+
+	/**
+	 * Build date range WHERE clause.
+	 *
+	 * @param string       $column     Column name.
+	 * @param string|null  $start_date Start date.
+	 * @param string|null  $end_date   End date.
+	 * @param array       &$params     Reference to params array.
+	 * @param string       $prefix     Prefix for conditions (e.g., ' AND ').
+	 *
+	 * @return string Date range clause.
+	 */
+	public static function date_range_clause( string $column, ?string $start_date, ?string $end_date, array &$params, string $prefix = ' AND ' ): string {
+		$conditions = self::date_range_conditions( $column, $start_date, $end_date, $params );
+
+		return empty( $conditions ) ? '' : $prefix . implode( ' AND ', $conditions );
 	}
 
 }
