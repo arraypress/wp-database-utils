@@ -118,6 +118,77 @@ class Database {
 	}
 
 	/**
+	 * Get row count for a table with optional conditions.
+	 *
+	 * @param string $table Table name (without prefix).
+	 * @param array  $where Optional WHERE conditions as column => value pairs.
+	 *
+	 * @return int Number of rows.
+	 */
+	public static function count_rows( string $table, array $where = [] ): int {
+		global $wpdb;
+
+		$table = sanitize_key( $table );
+		$sql   = "SELECT COUNT(*) FROM {$wpdb->prefix}{$table}";
+
+		if ( ! empty( $where ) ) {
+			$conditions = [];
+			$values     = [];
+
+			foreach ( $where as $column => $value ) {
+				$column = sanitize_key( $column );
+
+				if ( is_null( $value ) ) {
+					$conditions[] = "{$column} IS NULL";
+				} else {
+					$conditions[] = "{$column} = %s";
+					$values[]     = $value;
+				}
+			}
+
+			if ( ! empty( $conditions ) ) {
+				$sql .= " WHERE " . implode( ' AND ', $conditions );
+
+				if ( ! empty( $values ) ) {
+					$sql = $wpdb->prepare( $sql, $values );
+				}
+			}
+		}
+
+		return (int) $wpdb->get_var( $sql );
+	}
+
+	/**
+	 * Truncate a table (remove all rows).
+	 *
+	 * @param string $table                Table name (without prefix).
+	 * @param bool   $reset_auto_increment Whether to reset AUTO_INCREMENT to 1.
+	 *
+	 * @return bool True on success, false on failure.
+	 */
+	public static function truncate_table( string $table, bool $reset_auto_increment = true ): bool {
+		global $wpdb;
+
+		$table           = sanitize_key( $table );
+		$full_table_name = $wpdb->prefix . $table;
+
+		// Check if table exists first
+		if ( ! self::table_exists( $table ) ) {
+			return false;
+		}
+
+		// Use TRUNCATE if we want to reset auto increment
+		if ( $reset_auto_increment ) {
+			$result = $wpdb->query( "TRUNCATE TABLE {$full_table_name}" );
+		} else {
+			// Use DELETE to preserve auto increment value
+			$result = $wpdb->query( "DELETE FROM {$full_table_name}" );
+		}
+
+		return $result !== false;
+	}
+
+	/**
 	 * Get meta table name for object type.
 	 *
 	 * @param string $meta_type Meta type ('post', 'user', 'term', 'comment').
